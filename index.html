@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Emoji Pong: AI vs Itself</title>
+<style>
+  :root{
+    --bg:#f6f5f1; --surface-1:#ecebe5; --surface-2:#ffffff;
+    --text-primary:#1d1d1b; --text-secondary:#5d5c57; --border-strong:#b9b7ae;
+    --radius:10px;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#17171a; --surface-1:#232327; --surface-2:#2c2c31;
+      --text-primary:#f1f0ec; --text-secondary:#a5a39c; --border-strong:#4a4a50;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text-primary);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{max-width:420px;margin:0 auto;padding:14px}
+  h1{font-size:18px;font-weight:600;margin:0 0 10px}
+  button{font:inherit;padding:8px 14px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-2);color:var(--text-primary);cursor:pointer}
+  button:active{transform:scale(0.97)}
+</style>
+</head>
+<body>
+<h1>Emoji Pong: AI vs Itself</h1>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 8px;">
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:8px 10px;"><div style="font-size:12px;color:var(--text-secondary);">Rally / best</div><div id="rb" style="font-size:14px;font-weight:500;">0 / 0</div></div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:8px 10px;"><div style="font-size:12px;color:var(--text-secondary);">Sob rain</div><div id="sb" style="font-size:14px;font-weight:500;">0 survived · 0 lost</div></div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:8px 10px;"><div style="font-size:12px;color:var(--text-secondary);">Final boss</div><div id="bs" style="font-size:14px;font-weight:500;">0 beaten · 0 boomed</div></div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:8px 10px;"><div style="font-size:12px;color:var(--text-secondary);">Two-AI duels</div><div id="du" style="font-size:14px;font-weight:500;">0 won · 0 lost</div></div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:8px 10px;"><div style="font-size:12px;color:var(--text-secondary);">AI adaptation (max 150%)</div><div id="ad" style="font-size:14px;font-weight:500;">15%</div></div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:8px 10px;"><div style="font-size:12px;color:var(--text-secondary);">Enemy adaptation</div><div id="ead" style="font-size:14px;font-weight:500;">30%</div></div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:8px 10px;grid-column:1/-1;"><div style="font-size:12px;color:var(--text-secondary);">Last stand</div><div id="ls" style="font-size:14px;font-weight:500;">none yet</div></div>
+</div>
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:10px 12px;margin:0 0 8px;">
+  <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">Last stand chances</div>
+  <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0;"><span>Refuge arrives (rolled when the beam hits 25%)</span><b id="rc" style="font-weight:500;white-space:nowrap;">25%</b></div>
+  <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0;"><span>Duo counters the power-up: "Not on my watch"</span><b style="font-weight:500;white-space:nowrap;">15%</b></div>
+  <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0;"><span>Undying Resolve (no refuge, power-up not countered)</span><b style="font-weight:500;white-space:nowrap;">45%</b></div>
+  <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0;"><span>Refuge finale after 30s of struggle</span><b style="font-weight:500;white-space:nowrap;">50 / 50</b></div>
+  <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0;"><span>Undying Resolve ending: the AI charges, 1v1 final pong</span><b style="font-weight:500;white-space:nowrap;">65%</b></div>
+  <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0;"><span>Undying Resolve ending: the refuge ambushes the duo</span><b style="font-weight:500;white-space:nowrap;">35%</b></div>
+  <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0;"><span>Fatigue loss in the final pong</span><b style="font-weight:500;white-space:nowrap;">15%</b></div>
+  <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Refuge chance starts at 25%, rises 1% per second of struggle, max 60%. It is gone once the final power-up starts.</div>
+</div>
+<canvas id="c" width="340" height="440" style="display:block;width:100%;max-width:340px;margin:0 auto;border:0.5px solid var(--border-strong);border-radius:12px;background:var(--surface-1);touch-action:manipulation;"></canvas>
+<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">
+  <button id="skin">Change ball</button>
+  <button id="pause">Pause</button>
+  <button id="reset">Reset</button>
+</div>
+<script>
+// ===== Emoji Pong: plain HTML5 canvas + vanilla JavaScript, no libraries =====
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var W=340,H=440,PW=34,PH=12,R=15,SR=12,PY=H-34,AY=22,AI_SPEED=800,GROW=1.12,SOBS=20,SOB_SPEED=300,BOSS_Y=84,EN_Y=84,LEARN_CAP=1.5;
+var balls=['😈','⚽','🍕','👻','🐸','🌶️'],bi=0;
+var ax=W/2,apy=AY,bx=W/2,by=H/2,vx=0,vy=0,speed=300,rally=0,best=0;
+var wins=0,losses=0,bossW=0,bossL=0,duelW=0,duelL=0,paused=false;
+var state='play',sobs=[],pops=[],floats=[],parts=[],spawned=0,spawnT=0,killed=0,resT=0,resGood=false,bt=0,banner=null,learnAtSob=0;
+var bossY=-70,cp=0.5,ct=0,boost=0,aiP=1,bP=1,pT=0,e1x=W/4,e2x=3*W/4,hp=0,ep=0,dwait=0,tick=0,lastUpd=0;
+var noise=0,nT=0,lastStand=0,bestStand=0,flashT=0,whiteT=0;
+var allyHere=false,allyX=W+40,refugeRolled=false,finalUsed=false,surge=0,tired=false,msgT=0,msg='',saves=0;
+var phase='normal',phT=0,allyT=0,evilPower=false,goodPower=false,outcomeWin=false,refugeLost=false,shakeMag=0;
+var resolvePath=false,powerClock=0,evilTired=false,heroTired=false,resolveT=0,fbT=0,rescue=false;
+var stT=0,beamsOff=false,evilShocked=false,rescueT=0,hit1=false,hit2=false,rAx=W+40,rAy=EN_Y;
+var counterPath=false,cT=0,counterKO=false;
+var altEnding=false,chT=0,chSide=1,chHit=false,fx=W/2,fatigueLoss=false,fatOn=false,fatigueKO=false,stam=1,ft=0,finalW=0,finalL=0;
+var k1={on:false,x:0,y:0,vx:0,vy:0,rot:0,vr:0},k2={on:false,x:0,y:0,vx:0,vy:0,rot:0,vr:0};
+var learn=0.15,eLearn=0.3,mem=[];for(var m0=0;m0<17;m0++)mem.push(0);
+var rb=document.getElementById('rb'),sb=document.getElementById('sb'),bs=document.getElementById('bs'),du=document.getElementById('du'),ls=document.getElementById('ls'),ad=document.getElementById('ad'),ead=document.getElementById('ead'),rc=document.getElementById('rc');
+
+function cs(n,f){var v=getComputedStyle(document.body).getPropertyValue(n).trim();return v||f;}
+function refChance(){return Math.min(0.6,0.25+0.01*ct);}
+function addLearn(x){if(learn<LEARN_CAP)learn=Math.min(LEARN_CAP,learn+x);}
+function upd(){
+  rb.textContent=rally+' / '+best;
+  sb.textContent=wins+' survived · '+losses+' lost';
+  bs.textContent=bossW+' beaten · '+bossL+' boomed';
+  du.textContent=duelW+' won · '+duelL+' lost';
+  ad.textContent=Math.round(learn*100)+'%';
+  ead.textContent=Math.round(Math.min(1,eLearn)*100)+'%';
+  ls.textContent=(bestStand>0?'longest '+Math.round(bestStand)+'s':'none yet')+' · refuge saves '+saves+' · 1v1 '+finalW+'W '+finalL+'L';
+  if(state==='struggle'&&!finalUsed&&!refugeRolled)rc.textContent=Math.round(refChance()*100)+'% now (max 60%)';
+  else if(state==='struggle'&&allyHere)rc.textContent='arrived';
+  else if(state==='struggle'&&finalUsed)rc.textContent='gone';
+  else if(state==='struggle'&&refugeRolled)rc.textContent='did not come';
+  else rc.textContent='25% start (max 60%)';
+}
+function launch(dir,ang,sp,cap){
+  speed=Math.max(300,Math.min(cap||6000,sp));
+  vx=speed*Math.sin(ang);vy=dir*speed*Math.cos(ang);
+  if(Math.abs(vy)<speed*0.25)vy=(vy<0?-1:1)*speed*0.25;
+}
+function serve(){
+  bx=W/2;by=H/2;rally=0;
+  launch(Math.random()<0.5?1:-1,(Math.random()-0.5)*1.6,300);upd();
+}
+function hit(dir){
+  launch(dir,(Math.random()-0.5)*2.4,speed*GROW*(0.95+Math.random()*0.1));
+  rally++;if(rally>best)best=rally;upd();
+}
+function wall(sign){
+  var ang=Math.atan2(Math.abs(vx),Math.abs(vy))+(Math.random()-0.5)*0.9;
+  ang=Math.max(0.15,Math.min(1.4,ang));
+  launch(vy<0?-1:1,ang*sign,speed*(0.97+Math.random()*0.1));
+}
+function boom(x,y,n){
+  for(var i=0;i<n;i++){var a=Math.random()*6.283,s=60+Math.random()*180;
+    parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:0.7+Math.random()*0.5,e:Math.random()<0.7?'💥':'🔥'});}
+}
+function binOf(x){return Math.max(0,Math.min(16,Math.floor(x/20)));}
+function reflectX(x){
+  var span=W-2*R,u=((x-R)%(2*span)+2*span)%(2*span);
+  return R+(u>span?2*span-u:u);
+}
+// Main AI aims at the biggest gap between the two enemies, plus spots where they missed before
+function aim(){
+  var bestSc=-1,tx=W/2,x;
+  for(x=20;x<=W-20;x+=10){
+    var gap=Math.min(Math.abs(x-e1x),Math.abs(x-e2x));
+    var sc=gap+mem[binOf(x)]*18;
+    if(sc>bestSc){bestSc=sc;tx=x;}
+  }
+  var adapt=Math.min(1,learn);
+  var ang=Math.atan2(tx-bx,Math.max(60,by-AY))+(Math.random()-0.5)*1.6*(1-adapt);
+  return Math.max(-1.25,Math.min(1.25,ang));
+}
+
+// ===== State transitions =====
+function startSob(){state='sob';sobs=[];pops=[];floats=[];spawned=0;spawnT=0.9;killed=0;banner=null;learnAtSob=learn;}
+function endRound(good){
+  state='result';resGood=good;resT=1.6;sobs=[];
+  var gain=Math.round((learn-learnAtSob)*1000)/10;
+  var sub2=killed+'/'+SOBS+' destroyed · +'+gain+'% adaptation';
+  if(good){wins++;banner={m:'AI survived 😤',s:sub2,g:true};}
+  else{losses++;banner={m:'AI lost 😭',s:sub2,g:false};}
+  upd();
+}
+function toPlay(){state='play';banner=null;e1x=W/4;e2x=3*W/4;bossY=-70;msgT=0;shakeMag=0;serve();}
+function startBoss(){state='bossIntro';bt=1.8;bossY=-70;banner={m:'FINAL BOSS',s:'🤽‍♂️ has arrived',g:false};}
+function startClash(){state='clash';banner=null;cp=0.5;ct=0;boost=0;aiP=1;bP=1;pT=0;}
+function bossWin(){
+  bossW++;state='bossDown';bt=1.6;boom(W/2,bossY,22);
+  banner={m:'Boss defeated',s:'The beam won the clash',g:true};upd();
+}
+function bossLose(){
+  bossL++;state='boom';bt=3.4;boom(ax,apy,26);banner=null;upd();
+}
+function startDuelIntro(){state='duelIntro';bt=1.6;e1x=-30;e2x=W+30;banner={m:'Two enemy AIs',s:'The duel begins',g:false};}
+function startDuel(){
+  state='duel';banner=null;hp=0;ep=0;e1x=W/4;e2x=3*W/4;
+  addLearn(0.1);eLearn=Math.min(1,eLearn+0.2);
+  bx=W/2;by=H/2;launch(Math.random()<0.5?1:-1,(Math.random()-0.5)*1.4,300,1500);dwait=0.8;
+}
+function startStruggle(){
+  state='struggle';banner={m:'Final struggle',s:'Two AIs fire one beam',g:false};bt=1.5;
+  cp=0.55;ct=0;boost=0;noise=0;nT=0;ax=W/2;apy=PY;
+  allyHere=false;allyX=W+40;refugeRolled=false;finalUsed=false;surge=0;tired=false;msgT=0;
+  phase='normal';phT=0;allyT=0;evilPower=false;goodPower=false;refugeLost=false;shakeMag=0;
+  resolvePath=false;powerClock=0;evilTired=false;heroTired=false;resolveT=0;fbT=0;rescue=false;whiteT=0;
+  stT=0;beamsOff=false;evilShocked=false;rescueT=0;hit1=false;hit2=false;rAx=W+40;rAy=EN_Y;k1.on=false;k2.on=false;
+  counterPath=false;cT=0;counterKO=false;
+  altEnding=false;chT=0;chHit=false;fatigueLoss=false;fatOn=false;fatigueKO=false;stam=1;ft=0;
+}
+function startKO(){
+  lastStand=ct;if(lastStand>bestStand)bestStand=lastStand;
+  refugeLost=allyHere;shakeMag=0;
+  state='ko';bt=1.3;flashT=1.3;banner=null;boom(W/2,PY,30);upd();
+}
+function saved(rescued){
+  saves++;lastStand=ct;if(lastStand>bestStand)bestStand=lastStand;
+  state='saved';bt=3.6;shakeMag=0;
+  if(!rescued){boom(70,EN_Y,14);boom(270,EN_Y,14);}
+  if(rescued)banner={m:'The refuge arrived!',s:'The two AIs were knocked out',g:true};
+  else banner={m:'Refuge saved the day',s:'The duo was blasted away',g:true};
+  upd();
+}
+function duelPoint(heroScored){
+  if(heroScored)hp++;else ep++;
+  if(hp>=3){
+    state='duelResult';bt=2;duelW++;banner={m:'Duel won 😤',s:hp+' – '+ep,g:true};upd();return;
+  }
+  if(ep>=3){duelL++;upd();startStruggle();return;}
+  bx=W/2;by=H/2;launch(heroScored?1:-1,(Math.random()-0.5)*1.4,300,1500);dwait=0.8;
+}
+
+// ===== Alternate Undying Resolve ending: the AI charges, then a 1v1 final pong =====
+function startFinal(){
+  state='final';banner={m:'FINAL PONG',s:'1 v 1 · AI adaptation 200%',g:true};bt=1.5;
+  learn=Math.max(2,learn);eLearn=1;hp=0;ep=0;ft=0;stam=1;fatOn=false;
+  fatigueLoss=Math.random()<0.15;   // 15%: fatigue beats the AI
+  fx=chSide<0?270:70;shakeMag=0;
+  bx=W/2;by=H/2;launch(1,(Math.random()-0.5)*1.2,300,1400);dwait=1.6;
+}
+function startTriumph(){
+  finalW++;lastStand=ct;if(lastStand>bestStand)bestStand=lastStand;
+  state='triumph';bt=4.6;shakeMag=0;banner={m:'The AI stands tall',s:'Final pong won '+hp+' – '+ep,g:true};
+  boom(W/2,330,18);upd();
+}
+function finalPoint(heroScored){
+  if(heroScored)hp++;else ep++;
+  if(hp>=3){startTriumph();return;}
+  if(ep>=3){finalL++;fatigueKO=true;startKO();return;}
+  if(fatigueLoss&&!fatOn&&hp>=2){fatOn=true;banner={m:'FATIGUE',s:'Undying Resolve has burned out',g:false};bt=1.8;dwait=1.8;}
+  else dwait=0.8;
+  bx=W/2;by=H/2;launch(heroScored?1:-1,(Math.random()-0.5)*1.4,300,1400);
+}
+function fsub(dt){
+  bx+=vx*dt;by+=vy*dt;
+  if(bx<R){bx=R;vx=Math.abs(vx);}
+  if(bx>W-R){bx=W-R;vx=-Math.abs(vx);}
+  var f=fatOn?0.1+0.9*stam*stam:0.6+0.4*stam;
+  var m=AI_SPEED*(1+Math.max(0,learn-1)*0.4)*f*dt;
+  var htx=W/2;
+  if(vy>0){var th=Math.max(0,(PY-by)/vy);htx=reflectX(bx+vx*th);}
+  ax=Math.max(PW/2,Math.min(W-PW/2,ax+Math.max(-m,Math.min(m,htx-ax))));
+  var tgtX=bx;
+  if(vy<0){var te=Math.max(0,(by-AY)/Math.abs(vy)),pr=reflectX(bx+vx*te);tgtX=bx+(pr-bx)*(fatOn?1:0.8);}
+  tgtX=Math.max(PW/2,Math.min(W-PW/2,tgtX));
+  if(fatOn)fx=tgtX;
+  else{var m2=520*dt;fx+=Math.max(-m2,Math.min(m2,tgtX-fx));}
+  if(vy>0&&by+R>=PY&&by+R<PY+40&&Math.abs(bx-ax)<=PW/2+R*0.6){
+    by=PY-R;
+    var tx=fx<W/2?W-26:26;
+    var ang=Math.atan2(tx-bx,Math.max(60,by-AY))+(Math.random()-0.5)*1.6*(1-Math.min(1,learn));
+    ang=Math.max(-1.25,Math.min(1.25,ang));
+    launch(-1,ang,speed*(fatOn?1.0:1.25),1400);
+  }
+  if(vy<0&&by-R<=AY+PH&&by-R>AY+PH-40&&Math.abs(bx-fx)<=PW/2+R*0.6){
+    by=AY+PH+R;
+    var tx2=ax<W/2?W-26:26;
+    var a2=fatOn?Math.max(-1.25,Math.min(1.25,Math.atan2(tx2-bx,PY-AY))):(Math.random()-0.5)*2.2;
+    launch(1,a2,speed*1.08,1400);
+  }
+  if(by>H+R)finalPoint(false);
+  else if(by<-R)finalPoint(true);
+}
+
+// ===== Normal play: AI (top) vs infinitely wide paddle (bottom) =====
+function sub(dt){
+  bx+=vx*dt;by+=vy*dt;
+  if(bx<R){bx=R;wall(1);}
+  if(bx>W-R){bx=W-R;wall(-1);}
+  var d=Math.max(-AI_SPEED*dt,Math.min(AI_SPEED*dt,bx-ax));
+  ax=Math.max(PW/2,Math.min(W-PW/2,ax+d));
+  if(vy>0&&by+R>=PY){by=PY-R;hit(-1);}
+  if(vy<0&&by-R<=AY+PH&&by-R>AY+PH-40&&Math.abs(bx-ax)<=PW/2+R*0.6){by=AY+PH+R;hit(1);}
+  if(vy<0&&by<-R){startSob();}
+}
+
+// ===== Two-AI duel: hero at bottom, two enemies at top =====
+function dsub(dt){
+  bx+=vx*dt;by+=vy*dt;
+  addLearn(0.015*dt);eLearn=Math.min(1,eLearn+0.025*dt);
+  if(bx<R){bx=R;vx=Math.abs(vx);}
+  if(bx>W-R){bx=W-R;vx=-Math.abs(vx);}
+  var m=AI_SPEED*dt*(1+Math.max(0,learn-1)*0.4);
+  ax=Math.max(PW/2,Math.min(W-PW/2,ax+Math.max(-m,Math.min(m,bx-ax))));
+  var el=Math.min(1,eLearn);
+  var m2=(620+200*el)*dt;
+  var tgtX=bx;
+  if(vy<0){
+    var tt=Math.max(0,(by-AY)/Math.abs(vy));
+    var pred=reflectX(bx+vx*tt);
+    tgtX=bx+(pred-bx)*el;   // enemies blend from chasing to predicting as they adapt
+  }
+  var t1=Math.max(PW/2,Math.min(W/2,tgtX)),t2=Math.max(W/2,Math.min(W-PW/2,tgtX));
+  e1x+=Math.max(-m2,Math.min(m2,t1-e1x));
+  e2x+=Math.max(-m2,Math.min(m2,t2-e2x));
+  if(vy>0&&by+R>=PY&&by+R<PY+40&&Math.abs(bx-ax)<=PW/2+R*0.6){
+    by=PY-R;launch(-1,aim(),speed*1.08,1500);
+    eLearn=Math.min(1,eLearn+0.4);
+  }
+  if(vy<0&&by-R<=AY+PH&&by-R>AY+PH-40&&(Math.abs(bx-e1x)<=PW/2+R*0.6||Math.abs(bx-e2x)<=PW/2+R*0.6)){
+    var bn=binOf(bx);mem[bn]=Math.max(0,mem[bn]-0.3);
+    by=AY+PH+R;launch(1,(Math.random()-0.5)*2.2,speed*1.08,1500);
+  }
+  if(by>H+R){duelPoint(false);}
+  else if(by<-R){mem[binOf(bx)]+=1;addLearn(0.24);duelPoint(true);}
+}
+function glide(target,dt,sp){var m=(sp||1400)*dt;apy+=Math.max(-m,Math.min(m,target-apy));}
+function glideX(target,dt){var m=700*dt;ax+=Math.max(-m,Math.min(m,target-ax));}
+
+// ===== Last stand =====
+function startFlashback(){phase='flashback';fbT=4.2;shakeMag=0;msgT=0;}
+function startResolve(){
+  phase='resolve';resolveT=0;learn=Math.min(3,learn*2);   // Undying Resolve doubles adaptation
+  heroTired=false;evilTired=true;whiteT=0.5;
+  msg='UNDYING RESOLVE!';msgT=3;shakeMag=5;boom(W/2,PY,18);
+}
+function knock(k,x,dir){
+  k.on=true;k.x=x;k.y=EN_Y;k.vx=dir*260;k.vy=-220;k.rot=0;k.vr=dir*11;
+}
+function strike(x,emoji){
+  boom(x,EN_Y,10);
+  parts.push({x:x,y:EN_Y-20,vx:0,vy:-30,t:0.7,e:emoji});
+  shakeMag=8;whiteT=0.2;
+}
+// cp = clash point as a fraction from the AI (0) to the enemies (1)
+function struggleStep(dt){
+  if(bt>0){bt-=dt;if(bt<=0)banner=null;}
+  if(msgT>0)msgT-=dt;
+  ct+=dt;
+  [k1,k2].forEach(function(k){if(k.on){k.x+=k.vx*dt;k.y+=k.vy*dt;k.vy+=520*dt;k.rot+=k.vr*dt;}});
+  addLearn(0.03*dt);eLearn=Math.min(1,eLearn+0.05*dt);
+  nT-=dt;
+  if(nT<=0){noise=(Math.random()-0.5)*(phase==='ally'?0.06:0.1);nT=0.4;}
+  boost=Math.max(0,boost-2*dt);
+  if(allyHere)allyX+=Math.max(-420*dt,Math.min(420*dt,300-allyX));
+  var edge=Math.max(-0.012,Math.min(0.012,(Math.min(1,eLearn)-learn)*0.01)); // adaptation nudge on the beam
+  if(phase==='normal'){
+    var drift=-(0.011+0.0003*ct)+noise+boost*0.018-edge;
+    if(finalUsed)powerClock+=dt;
+    if(!finalUsed&&!refugeRolled&&cp<=0.25){
+      refugeRolled=true;
+      if(Math.random()<refChance()){allyHere=true;phase='ally';allyT=0;msg='Refuge arrived!';msgT=2.8;}
+    }
+    if(phase==='normal'&&!finalUsed&&cp<0.14){
+      finalUsed=true;
+      counterPath=Math.random()<0.15;   // 15%: the duo crushes the power-up before it starts
+      if(counterPath){
+        phase='counter';cT=0;msg='FINAL POWER UP!';msgT=0.7;
+      }else{
+        surge=3.2;msg='FINAL POWER UP!';msgT=2.4;boom(W/2,PY,12);
+        resolvePath=Math.random()<0.45;powerClock=0;   // 45%: Undying Resolve
+      }
+    }
+    if(surge>0){
+      surge-=dt;
+      cp+=(0.75-cp)*Math.min(1,dt*5);
+      drift=noise*0.3;
+      if(surge<=0){tired=true;msg='The AI is exhausted...';msgT=2.6;}
+    }else if(tired){
+      if(resolvePath)drift=-0.058+noise*0.2+boost*0.018;
+      else drift-=0.045;
+    }
+    cp+=drift*dt;
+    var cap=(surge>0||tired)?0.8:0.62;
+    if(cp>cap)cp=cap;
+    if(resolvePath&&finalUsed)cp=Math.max(cp,0.03);
+    if(Math.random()<dt*4)boom(W/2+(Math.random()-0.5)*20,PY-cp*(PY-EN_Y-30),1);
+    if(resolvePath&&finalUsed&&powerClock>=15){startFlashback();return;}
+    if(phase==='normal'&&cp<=0){cp=0;startKO();}
+  }else if(phase==='counter'){
+    cT+=dt;
+    if(cT<0.7){
+      cp=Math.max(cp,0.1);
+      if(Math.random()<dt*14)boom(W/2+(Math.random()-0.5)*20,PY-cp*(PY-EN_Y-30),1);
+    }else{
+      if(!evilPower){
+        evilPower=true;msg='NOT ON MY WATCH.';msgT=2.6;whiteT=0.25;shakeMag=10;
+        boom(70,EN_Y+20,8);boom(270,EN_Y+20,8);
+      }
+      cp-=0.22*dt;
+      if(Math.random()<dt*20)boom(W/2+(Math.random()-0.5)*30,PY-Math.max(0,cp)*(PY-EN_Y-30),1);
+      if(cp<=0){cp=0;counterKO=true;startKO();}
+    }
+  }else if(phase==='flashback'){
+    fbT-=dt;
+    if(fbT<=0)startResolve();
+  }else if(phase==='resolve'){
+    resolveT+=dt;
+    shakeMag=Math.max(0,5-resolveT*3);
+    cp+=(0.5+Math.sin(tick*1.5)*0.025-cp)*Math.min(1,dt*3);
+    if(Math.random()<dt*10)boom(W/2+(Math.random()-0.5)*30,PY-cp*(PY-EN_Y-30),1);
+    if(resolveT>=25){
+      phase='tiredBoth';heroTired=true;
+      learn=Math.max(0,learn-1.0);
+      msg='Both sides are exhausted. Equal strength';msgT=3;
+    }
+  }else if(phase==='tiredBoth'){
+    resolveT+=dt;
+    cp+=(0.5+Math.sin(tick*2)*0.012-cp)*Math.min(1,dt*3);
+    if(resolveT>=30){phase='stalemate';stT=0;beamsOff=false;msg='Stalemate...';msgT=2.5;shakeMag=3;}
+  }else if(phase==='stalemate'){
+    stT+=dt;
+    cp=0.5+Math.sin(tick*6)*0.01;
+    if(!beamsOff){
+      shakeMag=3;
+      if(Math.random()<dt*6)boom(W/2+(Math.random()-0.5)*20,PY-cp*(PY-EN_Y-30),1);
+      if(stT>=2){
+        beamsOff=true;evilShocked=true;heroTired=true;shakeMag=0;altEnding=Math.random()<0.65;   // 65%: the AI charges
+        msg='Both sides stop beaming...';msgT=3;
+      }
+    }
+    if(stT>=4.6&&altEnding){
+      phase='charge';chT=0;chHit=false;chSide=Math.random()<0.5?-1:1;heroTired=false;msg='THE AI CHARGES!';msgT=2.4;shakeMag=2;
+    }else if(stT>=4.6){
+      phase='rescue';rescueT=0;rescue=true;hit1=false;hit2=false;rAx=W+40;rAy=EN_Y;
+      msg='The refuge that never came!';msgT=3;
+    }
+  }else if(phase==='charge'){
+    chT+=dt;
+    var tx3=chSide<0?70:270;
+    if(chT<0.8){shakeMag=3;}
+    else if(!chHit){
+      var pc=Math.min(1,(chT-0.8)/0.7);pc=pc*pc;shakeMag=0;
+      ax=W/2+(tx3-W/2)*pc;apy=PY+((EN_Y+8)-PY)*pc;
+      if(Math.random()<dt*40)parts.push({x:ax,y:apy+16,vx:(Math.random()-0.5)*40,vy:50,t:0.35,e:'💨'});
+      if(chT>=1.5){chHit=true;knock(chSide<0?k1:k2,tx3,chSide<0?-1:1);strike(tx3,'⚡');msg='KNOCKED OUT!';msgT=2;}
+    }else{
+      shakeMag=Math.max(0,shakeMag-dt*20);
+      if(chT>=2.0){var back=900*dt;apy+=Math.max(-back,Math.min(back,PY-apy));glideX(W/2,dt);}
+      if(chT>=3.0)startFinal();
+    }
+  }else if(phase==='rescue'){
+    rescueT+=dt;
+    shakeMag=Math.max(0,shakeMag-dt*20);
+    if(rescueT<1.4){rAx=(W+40)+(312-(W+40))*(rescueT/1.4);}
+    else if(rescueT<1.9){rAx=312;}
+    else if(rescueT<2.25){rAx=312+(292-312)*((rescueT-1.9)/0.35);}
+    else if(rescueT<2.7){
+      rAx=292;
+      if(!hit1){hit1=true;knock(k2,270,1);strike(270,'👊');}
+    }else if(rescueT<3.15){rAx=292+(92-292)*((rescueT-2.7)/0.45);}
+    else{
+      rAx=92;
+      if(!hit2){hit2=true;knock(k1,70,-1);strike(70,'🦵');}
+    }
+    if(rescueT>=4.2){cp=1;saved(true);}
+  }else if(phase==='ally'){
+    allyT+=dt;
+    var d2=0.004+noise+boost*0.008+(0.3-cp)*0.03-edge*0.5;
+    cp+=d2*dt;
+    if(Math.random()<dt*5)boom(W/2+(Math.random()-0.5)*20,PY-cp*(PY-EN_Y-30),1);
+    if(cp<=0){cp=0;startKO();return;}
+    if(cp>=1){cp=1;saved(false);return;}
+    if(allyT>=30){phase='evilUp';phT=2.8;evilPower=true;msg='The evil duo powers up!';msgT=2.8;}
+  }else if(phase==='evilUp'){
+    phT-=dt;shakeMag=3;
+    cp+=(0.12-cp)*Math.min(1,dt*1.2);
+    if(Math.random()<dt*10)boom(W/2+(Math.random()-0.5)*30,PY-cp*(PY-EN_Y-30),1);
+    if(phT<=0){phase='goodUp';phT=2.8;goodPower=true;outcomeWin=Math.random()<0.5;msg='The AI and refuge power up!';msgT=2.8;}
+  }else if(phase==='goodUp'){
+    phT-=dt;shakeMag=7;
+    cp+=(0.5-cp)*Math.min(1,dt*2.2);
+    if(Math.random()<dt*14)boom(W/2+(Math.random()-0.5)*40,PY-cp*(PY-EN_Y-30),1);
+    if(phT<=0){phase='finale';phT=4;msg='Dead even. 50 / 50';msgT=4;}
+  }else if(phase==='finale'){
+    phT-=dt;shakeMag=10;
+    if(phT>1.1){cp=0.5+Math.sin(tick*9)*0.05;}
+    else{var tg=outcomeWin?1:0;cp+=(tg-cp)*Math.min(1,dt*3.5);}
+    if(Math.random()<dt*18)boom(W/2+(Math.random()-0.5)*40,PY-cp*(PY-EN_Y-30),1);
+    if(phT<=0){
+      if(outcomeWin){cp=1;saved(false);}
+      else{cp=0;startKO();}
+    }
+  }
+}
+
+// ===== Main update loop =====
+function step(dt){
+  tick+=dt;
+  if(tick-lastUpd>0.25){lastUpd=tick;upd();}
+  if(whiteT>0)whiteT-=dt;
+  for(var k=parts.length-1;k>=0;k--){var p=parts[k];p.x+=p.vx*dt;p.y+=p.vy*dt;p.t-=dt;if(p.t<=0)parts.splice(k,1);}
+  for(var f=floats.length-1;f>=0;f--){floats[f].y-=40*dt;floats[f].t-=dt;if(floats[f].t<=0)floats.splice(f,1);}
+  if(paused)return;
+  if(state==='play'){
+    glide(AY,dt);
+    var n=Math.max(1,Math.ceil(speed*dt/5));   // sub-steps so fast balls never tunnel through paddles
+    for(var i=0;i<n&&state==='play';i++)sub(dt/n);
+  }else if(state==='sob'){
+    glide(PY,dt);spawnT-=dt;
+    if(spawned<SOBS&&spawnT<=0){
+      var a=(Math.random()-0.5)*0.8;
+      sobs.push({x:SR+Math.random()*(W-2*SR),y:-SR,vx:SOB_SPEED*Math.sin(a),vy:SOB_SPEED*Math.cos(a)});
+      spawned++;spawnT=0.3+Math.random()*0.2;
+    }
+    var tgt=null,i2;
+    for(i2=0;i2<sobs.length;i2++){
+      var s=sobs[i2];s.x+=s.vx*dt;s.y+=s.vy*dt;
+      if(s.x<SR){s.x=SR;s.vx=Math.abs(s.vx);}
+      if(s.x>W-SR){s.x=W-SR;s.vx=-Math.abs(s.vx);}
+      if(!tgt||s.y>tgt.y)tgt=s;
+    }
+    var tx=W/2;
+    if(tgt){var t=Math.max(0,(apy-tgt.y)/tgt.vy);tx=Math.max(PW/2,Math.min(W-PW/2,tgt.x+tgt.vx*t));}
+    var d=Math.max(-AI_SPEED*dt,Math.min(AI_SPEED*dt,tx-ax));
+    ax=Math.max(PW/2,Math.min(W-PW/2,ax+d));
+    for(i2=sobs.length-1;i2>=0;i2--){
+      var q=sobs[i2];
+      if(q.vy>0&&q.y+SR>=apy&&q.y<=apy+PH+16&&Math.abs(q.x-ax)<=PW/2+SR*0.8){
+        pops.push({x:q.x,y:q.y,t:0.25});floats.push({x:q.x,y:q.y-10,t:0.8});
+        sobs.splice(i2,1);killed++;addLearn(0.025);   // +2.5% adaptation per sob
+      }else if(q.y-SR>H){endRound(false);return;}
+    }
+    for(var j=pops.length-1;j>=0;j--){pops[j].t-=dt;if(pops[j].t<=0)pops.splice(j,1);}
+    if(spawned>=SOBS&&sobs.length===0)endRound(true);
+  }else if(state==='result'){
+    glide(PY,dt);resT-=dt;
+    if(resT<=0){if(resGood)startBoss();else{apy=AY;toPlay();}}
+  }else if(state==='bossIntro'){
+    glide(PY,dt);glideX(W/2,dt);
+    bossY+=Math.max(-220*dt,Math.min(220*dt,BOSS_Y-bossY));
+    bt-=dt;if(bt<=0)startClash();
+  }else if(state==='clash'){
+    ct+=dt;pT-=dt;
+    if(pT<=0){aiP=0.5+Math.random();bP=0.5+Math.random();pT=0.35;}
+    boost=Math.max(0,boost-2*dt);
+    var bias=1.06+ct*0.03;
+    cp+=((aiP+boost)-bP*bias)*0.9*dt;
+    if(cp>=1){cp=1;bossWin();}
+    else if(cp<=0){cp=0;bossLose();}
+  }else if(state==='bossDown'){
+    bt-=dt;if(bt<=0){bossY=-70;startDuelIntro();}
+  }else if(state==='duelIntro'){
+    var mm=360*dt;
+    e1x+=Math.max(-mm,Math.min(mm,W/4-e1x));e2x+=Math.max(-mm,Math.min(mm,3*W/4-e2x));
+    glideX(W/2,dt);bt-=dt;if(bt<=0)startDuel();
+  }else if(state==='duel'){
+    if(dwait>0){dwait-=dt;return;}
+    var nn=Math.max(1,Math.ceil(speed*dt/5));
+    for(var z=0;z<nn&&state==='duel';z++)dsub(dt/nn);
+  }else if(state==='duelResult'){
+    bt-=dt;if(bt<=0){apy=AY;toPlay();}
+  }else if(state==='struggle'){
+    struggleStep(dt);
+  }else if(state==='saved'){
+    bt-=dt;if(bt<=0){apy=AY;ax=W/2;toPlay();}
+  }else if(state==='final'){
+    if(bt>0){bt-=dt;if(bt<=0)banner=null;}
+    ct+=dt;ft+=dt;
+    if(fatOn)stam=Math.max(0,stam-0.5*dt);else stam=Math.max(0.35,1-ft*0.012);
+    if(dwait>0){dwait-=dt;glide(PY,dt,900);glideX(W/2,dt);fx+=Math.max(-300*dt,Math.min(300*dt,W/2-fx));return;}
+    var fn=Math.max(1,Math.ceil(speed*dt/5));
+    for(var fz=0;fz<fn&&state==='final';fz++)fsub(dt/fn);
+  }else if(state==='triumph'){
+    bt-=dt;if(bt<=0){apy=AY;ax=W/2;toPlay();}
+  }else if(state==='ko'){
+    bt-=dt;if(flashT>0)flashT-=dt;
+    if(bt<=0)state='lost';
+  }else if(state==='boom'){
+    bt-=dt;if(bt<=0){apy=AY;ax=W/2;toPlay();}
+  }
+}
+
+// ===== Drawing =====
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function enemy(x,col,face){
+  ctx.fillStyle=col;rr(x-PW/2,AY,PW,PH,6);ctx.fill();
+  ctx.font='20px sans-serif';ctx.fillText(face,x,AY+PH+16);
+}
+function drawLost(tp,ts){
+  ctx.fillStyle=cs('--surface-1','#f5f4ef');ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#85B7EB';ctx.globalAlpha=0.55;
+  ctx.beginPath();ctx.ellipse(W/2,300,140,40,0,0,6.283);ctx.fill();
+  ctx.globalAlpha=0.7;ctx.fillStyle='#B5D4F4';
+  ctx.beginPath();ctx.ellipse(W/2,300,105,28,0,0,6.283);ctx.fill();
+  ctx.globalAlpha=1;ctx.strokeStyle='#378ADD';ctx.lineWidth=1;
+  var rip=(tick*20)%30;
+  ctx.globalAlpha=1-rip/30;ctx.beginPath();ctx.ellipse(W/2,300,105+rip,28+rip*0.25,0,0,6.283);ctx.stroke();ctx.globalAlpha=1;
+  ctx.fillStyle='#D85A30';ctx.save();ctx.translate(W/2+8,296);ctx.rotate(0.06);rr(-42,-7,84,14,7);ctx.fill();ctx.restore();
+  ctx.save();ctx.translate(W/2-60,282);ctx.rotate(-1.3);ctx.font='46px sans-serif';ctx.fillStyle=tp;ctx.fillText('😵',0,0);ctx.restore();
+  if(refugeLost){ctx.save();ctx.translate(W/2+78,300);ctx.rotate(1.2);ctx.font='38px sans-serif';ctx.fillStyle=tp;ctx.fillText('🦸',0,0);ctx.restore();}
+  ctx.font='22px sans-serif';
+  ctx.fillText('💦',W/2-120,268);ctx.fillText('💦',W/2+118,284);ctx.fillText('💫',W/2-72,236+Math.sin(tick*3)*4);
+  ctx.font='500 22px sans-serif';ctx.fillStyle=ts;
+  ctx.fillText('💤',W/2+10,236+Math.sin(tick*2)*5);
+  ctx.fillStyle=tp;ctx.font='500 24px sans-serif';ctx.fillText(fatigueKO?'The AI ran out of steam':refugeLost?'The AI and refuge fell':(counterKO?'The AI was crushed':'The AI passed out'),W/2,90);
+  ctx.fillStyle=ts;ctx.font='14px sans-serif';
+  ctx.fillText('It held the beam for '+Math.round(lastStand)+' seconds',W/2,122);
+  ctx.fillText(fatigueKO?'Fatigue won the final pong':refugeLost?'Even a 50 / 50 shot was not enough':(counterKO?'The power-up never got to start':'Two against one was never fair'),W/2,146);
+  if(counterKO)ctx.fillText('"Not on my watch."',W/2,168);
+  if(fatigueKO)ctx.fillText('Undying Resolve burned too bright',W/2,168);
+  ctx.fillText('Tap to try again',W/2,390);
+  ctx.font='28px sans-serif';
+  if(fatigueKO){ctx.fillText(chSide<0?'😵':'😂',70,200);ctx.fillText(chSide<0?'🤣':'😵',270,200);}
+  else{ctx.fillText('😂',70,200);ctx.fillText('🤣',270,200);}
+}
+function drawBeams(tp,ts){
+  var cy2=PY-cp*(PY-EN_Y-30);
+  var shake=(Math.random()-0.5)*5;
+  var resolving=state==='struggle'&&phase==='resolve';
+  var flash=(Math.floor(tick*10)%2===0)?'#378ADD':'#7F77DD';
+  var power=state==='struggle'&&(surge>0||goodPower);
+  ctx.font='44px sans-serif';ctx.fillStyle=tp;
+  var face=evilPower?'👹':(evilTired?'🥵':'😈');
+  ctx.fillText(face,70,EN_Y);ctx.fillText(face,270,EN_Y);
+  ctx.lineCap='round';
+  var ew=evilPower?26:(evilTired?12:16);
+  ctx.strokeStyle=evilPower?'#E24B4A':'#7F77DD';ctx.lineWidth=ew;
+  ctx.beginPath();ctx.moveTo(78,EN_Y+24);ctx.lineTo(W/2,cy2);ctx.stroke();
+  ctx.strokeStyle=evilPower?'#A32D2D':'#534AB7';
+  ctx.beginPath();ctx.moveTo(262,EN_Y+24);ctx.lineTo(W/2,cy2);ctx.stroke();
+  ctx.strokeStyle='#ffffff';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(78,EN_Y+24);ctx.lineTo(W/2,cy2);ctx.moveTo(262,EN_Y+24);ctx.lineTo(W/2,cy2);ctx.stroke();
+  if(allyHere){
+    ctx.strokeStyle=goodPower?'#EF9F27':'#1D9E75';ctx.lineWidth=goodPower?22:10;
+    ctx.beginPath();ctx.moveTo(allyX-6,PY-22);ctx.lineTo(W/2,cy2);ctx.stroke();
+    ctx.strokeStyle='#ffffff';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(allyX-6,PY-22);ctx.lineTo(W/2,cy2);ctx.stroke();
+    ctx.font='38px sans-serif';ctx.fillStyle=tp;ctx.fillText('🦸',allyX,PY-4);
+  }
+  if(resolving){
+    ctx.globalAlpha=0.3;ctx.fillStyle=flash;ctx.fillRect(W/2-12,cy2,24,PY-cy2);ctx.globalAlpha=1;
+    ctx.fillStyle=flash;
+  }else ctx.fillStyle=power?'#EF9F27':'#378ADD';
+  var bw=resolving?11:(power?22:10);
+  ctx.fillRect(W/2-bw/2+shake*0.3,cy2,bw,PY-cy2);
+  ctx.fillStyle='#ffffff';ctx.fillRect(W/2-1.5,cy2,3,PY-cy2);
+  ctx.fillStyle=resolving?flash:'#EF9F27';
+  ctx.beginPath();ctx.arc(W/2,cy2,(evilPower||goodPower||resolving?26:18)+Math.random()*7,0,6.283);ctx.fill();
+  ctx.fillStyle='#FAEEDA';ctx.beginPath();ctx.arc(W/2,cy2,9,0,6.283);ctx.fill();
+}
+function drawNoBeams(tp){
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=tp;
+  var bob=Math.sin(tick*16)*2;
+  if(!k1.on){
+    ctx.font='44px sans-serif';ctx.fillText('😨',70+bob,EN_Y);
+    if(rescue){ctx.font='22px sans-serif';ctx.fillText('❗',70,EN_Y-38+Math.sin(tick*8)*2);}
+  }
+  if(!k2.on){
+    ctx.font='44px sans-serif';ctx.fillText('😨',270+bob,EN_Y);
+    if(rescue){ctx.font='22px sans-serif';ctx.fillText('❗',270,EN_Y-38+Math.sin(tick*8)*2);}
+  }
+  [k1,k2].forEach(function(k){
+    if(k.on){ctx.save();ctx.translate(k.x,k.y);ctx.rotate(k.rot);ctx.font='44px sans-serif';ctx.fillStyle=tp;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('😵',0,0);ctx.restore();}
+  });
+  if(rescue){ctx.font='44px sans-serif';ctx.fillStyle=tp;ctx.fillText('🦸',rAx,rAy);}
+}
+function drawBar(tp,ts){
+  var bx0=50,bw=240,by0=H-62,bh=16;
+  var share=Math.max(0,Math.min(1,cp));
+  var tipping=phase==='finale'&&phT<=1.1;
+  ctx.globalAlpha=0.95;ctx.fillStyle=cs('--surface-2','#fff');rr(bx0-8,by0-24,bw+16,bh+32,10);ctx.fill();ctx.globalAlpha=1;
+  ctx.strokeStyle=cs('--border-strong','#bbb');ctx.lineWidth=0.5;rr(bx0-8,by0-24,bw+16,bh+32,10);ctx.stroke();
+  ctx.fillStyle='#E24B4A';rr(bx0,by0,bw,bh,5);ctx.fill();
+  if(share>0.01){
+    ctx.save();rr(bx0,by0,bw,bh,5);ctx.clip();
+    ctx.fillStyle='#EF9F27';ctx.fillRect(bx0,by0,bw*share,bh);
+    ctx.restore();
+  }
+  ctx.fillStyle='#ffffff';ctx.fillRect(bx0+bw*share-1.5,by0-3,3,bh+6);
+  ctx.strokeStyle=ts;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(bx0+bw/2,by0+bh);ctx.lineTo(bx0+bw/2,by0+bh+4);ctx.stroke();
+  ctx.font='500 12px sans-serif';ctx.textBaseline='middle';
+  ctx.textAlign='left';ctx.fillStyle='#BA7517';ctx.fillText('Heroes '+Math.round(share*100)+'%',bx0,by0-12);
+  ctx.textAlign='right';ctx.fillStyle='#E24B4A';ctx.fillText('Evil '+Math.round((1-share)*100)+'%',bx0+bw,by0-12);
+  ctx.textAlign='center';
+  if(tipping){ctx.fillStyle=tp;ctx.fillText(outcomeWin?'Tipping to heroes...':'Tipping to evil...',W/2,by0-12);}
+}
+function drawFlashback(){
+  ctx.globalAlpha=0.9;ctx.fillStyle='#1a1208';ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=0.14;ctx.fillStyle='#EF9F27';ctx.beginPath();ctx.arc(W/2,190,140,0,6.283);ctx.fill();
+  ctx.globalAlpha=1;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='500 12px sans-serif';ctx.fillStyle='#FAC775';ctx.fillText('F L A S H B A C K',W/2,40);
+  ctx.font='84px sans-serif';ctx.fillText('🧓',W/2,150);
+  ctx.font='500 13px sans-serif';ctx.fillStyle='#FAC775';ctx.fillText('The mentor',W/2,214);
+  var l1='Never give up.',l2='Always fight for everyone you love.';
+  var prog=(4.2-fbT-0.3)/2.9,total=l1.length+l2.length;
+  var n=Math.floor(Math.max(0,Math.min(1,prog))*total);
+  var a1=l1.substring(0,Math.min(n,l1.length)),a2=n>l1.length?l2.substring(0,n-l1.length):'';
+  ctx.font='500 17px sans-serif';ctx.fillStyle='#FAEEDA';ctx.fillText(a1,W/2,258);
+  ctx.font='500 15px sans-serif';ctx.fillText(a2,W/2,288);
+  ctx.font='40px sans-serif';ctx.fillText('😢',W/2,360+Math.sin(tick*3)*3);
+}
+function chanceText(){
+  if(phase==='charge')return 'No refuge needed. The AI charges';
+  if(rescue)return 'The refuge that never came';
+  if(allyHere)return 'Refuge is here';
+  if(finalUsed)return 'Refuge gone after final power-up';
+  if(refugeRolled)return 'The refuge did not come';
+  return 'Refuge chance '+Math.round(refChance()*100)+'% · rolls at 25% beam';
+}
+function promptText(){
+  if(phase==='normal'||phase==='ally')return 'The AI refuses to fall. Tap to hold the beam';
+  if(phase==='counter')return cT<0.7?'The AI starts to power up...':'The power-up is crushed';
+  if(phase==='resolve')return 'Undying Resolve burns bright';
+  if(phase==='tiredBoth')return 'Both sides are spent';
+  if(phase==='stalemate')return beamsOff?'Both sides stop beaming':'Stalemate';
+  if(phase==='charge')return chHit?'One enemy is down':'The AI charges!';
+  if(phase==='rescue')return 'Help has arrived';
+  return 'The arena is shaking';
+}
+function msgColor(resolving){
+  if(resolving)return (Math.floor(tick*10)%2===0)?'#378ADD':'#7F77DD';
+  if(phase==='charge')return (Math.floor(tick*10)%2===0)?'#378ADD':'#7F77DD';
+  if(phase==='counter')return evilPower?'#E24B4A':'#EF9F27';
+  if(phase==='rescue')return '#1D9E75';
+  if(phase==='stalemate'||phase==='tiredBoth')return '#EF9F27';
+  if(evilPower&&!goodPower)return '#E24B4A';
+  if(surge>0||goodPower)return '#EF9F27';
+  return (allyHere&&!tired)?'#1D9E75':'#E24B4A';
+}
+function drawInner(){
+  var tp=cs('--text-primary','#222'),ts=cs('--text-secondary','#777'),br=cs('--border-strong','#bbb');
+  ctx.clearRect(0,0,W,H);
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  if(state==='lost'){drawLost(tp,ts);return;}
+  ctx.setLineDash([8,8]);ctx.strokeStyle=br;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
+  if(state==='play'){ctx.fillStyle='#1D9E75';ctx.fillRect(0,PY,W,PH);}
+  var showHero=state!=='boom'&&state!=='ko';
+  var jx=state==='struggle'?(Math.random()-0.5)*(1-cp)*10:0;
+  var resolving=state==='struggle'&&phase==='resolve';
+  var charging=state==='struggle'&&phase==='counter'&&cT<0.7;
+  var heroGold=state==='struggle'&&(surge>0||goodPower||charging);
+  if(showHero){
+    ctx.fillStyle=(resolving||(state==='struggle'&&phase==='charge'))?((Math.floor(tick*10)%2===0)?'#378ADD':'#7F77DD'):(heroGold||(state==='final'&&!fatOn)?'#EF9F27':'#D85A30');
+    rr(ax-PW/2+jx,apy,PW,PH,6);ctx.fill();
+  }
+  if(state==='play'){
+    ctx.font='28px sans-serif';ctx.fillStyle=tp;ctx.fillText(balls[bi],bx,by+2);
+    ctx.font='18px sans-serif';ctx.fillText('🤖',22,PY+PH+16);ctx.fillText('♾️',W-22,PY+PH+16);
+  }
+  if(state==='sob'||state==='result'){
+    ctx.font='20px sans-serif';ctx.fillStyle=tp;ctx.fillText('😭',ax-PW/2-16,apy+PH/2+1);
+    ctx.font='24px sans-serif';
+    for(var i=0;i<sobs.length;i++)ctx.fillText('😭',sobs[i].x,sobs[i].y+2);
+    for(var j=0;j<pops.length;j++){ctx.globalAlpha=pops[j].t/0.25;ctx.fillText('💥',pops[j].x,pops[j].y);ctx.globalAlpha=1;}
+    ctx.font='500 13px sans-serif';ctx.fillStyle='#1D9E75';
+    for(var f=0;f<floats.length;f++){ctx.globalAlpha=Math.min(1,floats[f].t/0.5);ctx.fillText('+2.5',floats[f].x,floats[f].y);}
+    ctx.globalAlpha=1;
+    if(state==='sob'){
+      ctx.font='500 14px sans-serif';ctx.fillStyle=ts;ctx.fillText('AI is crying · '+killed+'/'+SOBS+' destroyed',W/2,14);
+      ctx.font='13px sans-serif';ctx.fillStyle='#1D9E75';ctx.fillText('AI adaptation '+Math.round(learn*100)+'% · +2.5% per sob',W/2,32);
+    }
+  }
+  if(state==='bossIntro'||state==='clash'){
+    ctx.font='64px sans-serif';ctx.fillStyle=tp;ctx.fillText('🤽‍♂️',W/2,bossY);
+  }
+  if(state==='clash'){
+    var cy=apy-cp*(apy-bossY-34);
+    var jit=(Math.random()-0.5)*4;
+    ctx.fillStyle='#378ADD';ctx.fillRect(W/2-8+jit,cy,16,apy-cy);
+    ctx.fillStyle='#E24B4A';ctx.fillRect(W/2-8-jit,bossY+34,16,cy-bossY-34);
+    ctx.fillStyle='#ffffff';ctx.fillRect(W/2-2,cy,4,apy-cy);ctx.fillRect(W/2-2,bossY+34,4,cy-bossY-34);
+    ctx.fillStyle='#EF9F27';ctx.beginPath();ctx.arc(W/2,cy,16+Math.random()*6,0,6.283);ctx.fill();
+    ctx.fillStyle='#FAEEDA';ctx.beginPath();ctx.arc(W/2,cy,8,0,6.283);ctx.fill();
+    ctx.font='500 14px sans-serif';ctx.fillStyle=ts;
+    ctx.fillText('Beam clash! Tap to power up the AI beam',W/2,H-10);
+  }
+  if(state==='duelIntro'||state==='duel'||state==='duelResult'){
+    enemy(e1x,'#7F77DD','😈');enemy(e2x,'#534AB7','😈');
+    ctx.font='18px sans-serif';ctx.fillStyle=tp;ctx.fillText('🤖',ax-PW/2-16,apy+PH/2+1);
+    if(state==='duel'){
+      ctx.font='28px sans-serif';ctx.fillText(balls[bi],bx,by+2);
+      ctx.font='500 14px sans-serif';ctx.fillStyle=ts;
+      ctx.fillText('AI '+hp+' – '+ep+' enemies · first to 3',W/2,H/2-28);
+      ctx.fillText('AI adaptation '+Math.round(learn*100)+'%',W/2,H/2+4);
+      ctx.fillStyle='#7F77DD';
+      ctx.fillText('Enemy adaptation '+Math.round(Math.min(1,eLearn)*100)+'%',W/2,H/2+26);
+    }
+  }
+  if((state==='struggle'||state==='ko')&&!(state==='ko'&&fatigueKO)){
+    if(state==='struggle'&&beamsOff)drawNoBeams(tp);
+    else drawBeams(tp,ts);
+    if(state==='struggle'){
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='18px sans-serif';ctx.fillStyle=tp;
+      var hf=(surge>0||goodPower||resolving||charging||phase==='charge')?'🔥':(phase==='counter'&&evilPower)?'😱':((tired||heroTired)?'😮‍💨':(cp<0.2?'😫':'😤'));
+      ctx.fillText(hf,ax-PW/2-16,apy+PH/2+1);
+      if(surge>0||goodPower||resolving||charging||phase==='charge'){ctx.fillText('🔥',ax+PW/2+14,apy+PH/2-6+Math.sin(tick*30)*3);}
+      ctx.font='500 14px sans-serif';ctx.fillStyle=ts;
+      ctx.fillText('Final struggle · '+Math.round(ct)+'s',W/2,14);
+      ctx.font='13px sans-serif';
+      ctx.fillStyle=(allyHere||rescue)?'#1D9E75':(finalUsed||refugeRolled?'#E24B4A':ts);
+      ctx.fillText(chanceText(),W/2,32);
+      ctx.fillStyle=ts;ctx.font='12px sans-serif';
+      ctx.fillText('AI adapt '+Math.round(learn*100)+'% · enemy adapt '+Math.round(Math.min(1,eLearn)*100)+'%',W/2,H-28);
+      ctx.font='500 14px sans-serif';
+      ctx.fillText(promptText(),W/2,H-10);
+      if(phase==='evilUp'||phase==='goodUp'||phase==='finale')drawBar(tp,ts);
+      if(msgT>0){
+        ctx.font=(phase==='counter'&&evilPower)?'500 24px sans-serif':'500 17px sans-serif';ctx.textAlign='center';
+        ctx.fillStyle=msgColor(resolving);
+        ctx.fillText(msg,W/2,(phase==='counter'&&evilPower)?150:(beamsOff?(EN_Y+56):54));
+      }
+      if(phase==='flashback')drawFlashback();
+    }
+  }
+  if(state==='final'){
+    enemy(fx,'#7F77DD',fatOn?'😈':'😠');
+    ctx.font='18px sans-serif';ctx.fillStyle=tp;ctx.fillText(fatOn?'😮‍💨':'🤖',ax-PW/2-16,apy+PH/2+1);
+    if(!fatOn)ctx.fillText('🔥',ax+PW/2+14,apy+PH/2-6+Math.sin(tick*30)*3);
+    ctx.font='28px sans-serif';ctx.fillText(balls[bi],bx,by+2);
+    ctx.font='500 14px sans-serif';ctx.fillStyle=ts;
+    ctx.fillText('AI '+hp+' – '+ep+' enemy · first to 3',W/2,H/2-28);
+    ctx.fillText('AI adaptation '+Math.round(learn*100)+'% · stamina '+Math.round(stam*100)+'%',W/2,H/2+4);
+    ctx.fillStyle='#7F77DD';ctx.fillText('Enemy adaptation 100%',W/2,H/2+26);
+  }
+  if(state==='triumph'){
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=tp;
+    ctx.save();ctx.translate(W/2-80,396);ctx.rotate(-1.35);ctx.font='44px sans-serif';ctx.fillText('😵',0,0);ctx.restore();
+    ctx.save();ctx.translate(W/2+80,396);ctx.rotate(1.35);ctx.font='44px sans-serif';ctx.fillText('😵',0,0);ctx.restore();
+    ctx.font='76px sans-serif';ctx.fillText('🤖',W/2,324+Math.sin(tick*3)*3);
+    ctx.font='26px sans-serif';ctx.fillText('🔥',W/2-54,336);ctx.fillText('🔥',W/2+54,336);
+    ctx.fillText('✨',W/2-76,284+Math.sin(tick*4)*3);ctx.fillText('✨',W/2+76,290+Math.cos(tick*4)*3);
+  }
+  if(state==='ko'&&fatigueKO){
+    enemy(fx,'#7F77DD','😈');
+    ctx.save();ctx.translate(ax,PY+4);ctx.rotate(1.3);ctx.font='44px sans-serif';ctx.fillStyle=tp;ctx.fillText('😵',0,0);ctx.restore();
+    ctx.font='500 17px sans-serif';ctx.fillStyle='#E24B4A';ctx.fillText('FATIGUE...',W/2,H/2);
+  }
+  if(state==='saved'){
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    if(rescue){
+      ctx.font='56px sans-serif';ctx.fillStyle=tp;ctx.fillText('🦸',W/2,150+Math.sin(tick*4)*3);
+      ctx.font='24px sans-serif';ctx.fillText('✨',W/2-60,130);ctx.fillText('✨',W/2+60,140);
+    }else{
+      ctx.font='44px sans-serif';ctx.fillStyle=tp;
+      ctx.fillText('😵',70,EN_Y);ctx.fillText('😵',270,EN_Y);
+      ctx.font='38px sans-serif';ctx.fillText('🦸',W/2+60,PY-4);
+    }
+    ctx.font='18px sans-serif';ctx.fillStyle=tp;ctx.fillText('😤',ax-PW/2-16,apy+PH/2+1);
+  }
+  if(state==='boom'){
+    var w=Math.sin(tick*18)*3;
+    enemy(W/3,'#7F77DD','😈');enemy(2*W/3,'#534AB7','😈');
+    ctx.font='40px sans-serif';ctx.fillStyle=tp;
+    ctx.fillText('🤣',W/3+w,AY+80);ctx.fillText('😂',2*W/3-w,AY+80);
+    ctx.font='500 22px sans-serif';ctx.fillStyle='#E24B4A';
+    ctx.fillText('HA HA HA HA',W/2+w,H/2);
+    ctx.font='14px sans-serif';ctx.fillStyle=ts;ctx.fillText('The AI exploded',W/2,H/2+28);
+  }
+  ctx.font='26px sans-serif';ctx.fillStyle=tp;ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var k=0;k<parts.length;k++){var p=parts[k];ctx.globalAlpha=Math.min(1,p.t*2);ctx.fillText(p.e,p.x,p.y);}
+  ctx.globalAlpha=1;
+  if(state==='ko'&&flashT>0){ctx.globalAlpha=Math.min(1,flashT/1.3);ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
+  if(whiteT>0){ctx.globalAlpha=Math.min(1,whiteT/0.5);ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
+  if(banner){
+    ctx.globalAlpha=0.93;ctx.fillStyle=cs('--surface-2','#fff');rr(40,H/2-45,W-80,90,12);ctx.fill();ctx.globalAlpha=1;
+    ctx.strokeStyle=banner.g?'#1D9E75':'#E24B4A';ctx.lineWidth=1;rr(40,H/2-45,W-80,90,12);ctx.stroke();
+    ctx.fillStyle=tp;ctx.font='500 20px sans-serif';ctx.fillText(banner.m,W/2,H/2-12);
+    ctx.fillStyle=ts;ctx.font='13px sans-serif';ctx.fillText(banner.s,W/2,H/2+18);
+  }
+  if(paused){
+    ctx.globalAlpha=0.9;ctx.fillStyle=cs('--surface-2','#fff');rr(90,H/2-30,W-180,60,12);ctx.fill();ctx.globalAlpha=1;
+    ctx.fillStyle=tp;ctx.font='500 18px sans-serif';ctx.fillText('Paused',W/2,H/2);
+  }
+}
+function draw(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  if(shakeMag>0&&!paused)ctx.translate((Math.random()-0.5)*shakeMag*2,(Math.random()-0.5)*shakeMag*2);
+  drawInner();
+  ctx.restore();
+}
+
+// ===== Loop and input =====
+var last=0;
+function loop(t){
+  var dt=Math.min(0.033,(t-last)/1000||0);last=t;
+  step(dt);draw();requestAnimationFrame(loop);
+}
+cv.addEventListener('pointerdown',function(){
+  if(paused)return;
+  if(state==='clash')boost=Math.min(1,boost+0.3);
+  else if(state==='struggle'&&(phase==='normal'||phase==='ally'))boost=Math.min(1,boost+0.3);
+  else if(state==='lost'){apy=AY;ax=W/2;toPlay();}
+});
+document.getElementById('skin').onclick=function(){bi=(bi+1)%balls.length;};
+document.getElementById('pause').onclick=function(){paused=!paused;this.textContent=paused?'Resume':'Pause';};
+document.getElementById('reset').onclick=function(){
+  wins=0;losses=0;bossW=0;bossL=0;duelW=0;duelL=0;best=0;bestStand=0;lastStand=0;saves=0;finalW=0;finalL=0;learn=0.15;eLearn=0.3;
+  for(var q=0;q<17;q++)mem[q]=0;
+  sobs=[];pops=[];floats=[];parts=[];apy=AY;ax=W/2;toPlay();
+};
+serve();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
